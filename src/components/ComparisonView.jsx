@@ -1,4 +1,7 @@
 import { useState, useMemo } from 'react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+
+const AGE_GROUPS = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']
 
 export default function ComparisonView({ historyRows, adImages }) {
   const periods = useMemo(() => {
@@ -205,96 +208,75 @@ function AdCompareCard({ adName, imageUrl, period1, period2, r1, r2 }) {
 }
 
 function DemoCompare({ demo1, demo2, period1, period2 }) {
-  const calcStats = (demos) => {
+  const calcGender = (demos) => {
     const total = demos.reduce((s, d) => s + d.impressions, 0)
     const maleImp = demos.filter(d => d.gender === 'male').reduce((s, d) => s + d.impressions, 0)
     const maleP = total > 0 ? Math.round(maleImp / total * 100) : 0
-    const ageMap = {}
-    demos.forEach(d => { ageMap[d.age] = (ageMap[d.age] || 0) + d.impressions })
-    const ages = Object.entries(ageMap)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([age, imp]) => ({ age, percent: total > 0 ? Math.round(imp / total * 100) : 0 }))
-    return { maleP, femaleP: 100 - maleP, ages }
+    return { maleP, femaleP: 100 - maleP }
   }
 
-  const s1 = demo1.length > 0 ? calcStats(demo1) : null
-  const s2 = demo2.length > 0 ? calcStats(demo2) : null
-  const allAges = [...new Set([
-    ...(s1?.ages.map(a => a.age) || []),
-    ...(s2?.ages.map(a => a.age) || []),
-  ])].sort()
+  const g1 = demo1.length > 0 ? calcGender(demo1) : null
+  const g2 = demo2.length > 0 ? calcGender(demo2) : null
+
+  const total1 = demo1.reduce((s, d) => s + d.impressions, 0)
+  const total2 = demo2.reduce((s, d) => s + d.impressions, 0)
+  const chartData = AGE_GROUPS.map(age => ({
+    age,
+    p1: total1 > 0 ? Math.round(demo1.filter(d => d.age === age).reduce((s, d) => s + d.impressions, 0) / total1 * 100) : 0,
+    p2: total2 > 0 ? Math.round(demo2.filter(d => d.age === age).reduce((s, d) => s + d.impressions, 0) / total2 * 100) : 0,
+  })).filter(d => d.p1 > 0 || d.p2 > 0)
 
   return (
     <div className="space-y-3">
       {/* 性別バー */}
       <div className="space-y-2">
-        {s1 && (
+        {g1 && (
           <div>
             <div className="flex justify-between text-xs mb-0.5">
               <span className="text-blue-600 font-medium">{period1}</span>
-              <span className="text-gray-400">男 {s1.maleP}% / 女 {s1.femaleP}%</span>
+              <span className="text-gray-400">男 {g1.maleP}% / 女 {g1.femaleP}%</span>
             </div>
             <div className="flex h-2.5 rounded-full overflow-hidden">
-              <div className="bg-blue-400" style={{ width: `${s1.maleP}%` }} />
-              <div className="bg-pink-400" style={{ width: `${s1.femaleP}%` }} />
+              <div style={{ width: `${g1.maleP}%`, background: '#7B61FF' }} />
+              <div style={{ width: `${g1.femaleP}%`, background: '#00C4CC' }} />
             </div>
           </div>
         )}
-        {s2 && (
+        {g2 && (
           <div>
             <div className="flex justify-between text-xs mb-0.5">
               <span className="text-gray-400">{period2}</span>
-              <span className="text-gray-300">男 {s2.maleP}% / 女 {s2.femaleP}%</span>
+              <span className="text-gray-300">男 {g2.maleP}% / 女 {g2.femaleP}%</span>
             </div>
             <div className="flex h-2.5 rounded-full overflow-hidden">
-              <div className="bg-blue-200" style={{ width: `${s2.maleP}%` }} />
-              <div className="bg-pink-200" style={{ width: `${s2.femaleP}%` }} />
+              <div style={{ width: `${g2.maleP}%`, background: '#C4B5FF' }} />
+              <div style={{ width: `${g2.femaleP}%`, background: '#7FE8EC' }} />
             </div>
           </div>
         )}
       </div>
 
-      {/* 年齢バー（2期間を並べて表示） */}
-      <div className="space-y-2">
-        {allAges.map(age => {
-          const a1 = s1?.ages.find(a => a.age === age)
-          const a2 = s2?.ages.find(a => a.age === age)
-          return (
-            <div key={age} className="flex items-start gap-2">
-              <span className="text-xs text-gray-400 w-14 shrink-0 mt-0.5">{age}</span>
-              <div className="flex-1 space-y-0.5">
-                {a1 && (
-                  <div className="flex items-center gap-1">
-                    <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-                      <div className="bg-indigo-400 h-1.5 rounded-full" style={{ width: `${a1.percent}%` }} />
-                    </div>
-                    <span className="text-xs text-blue-600 w-8 text-right shrink-0">{a1.percent}%</span>
-                  </div>
-                )}
-                {a2 && (
-                  <div className="flex items-center gap-1">
-                    <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-                      <div className="bg-indigo-200 h-1.5 rounded-full" style={{ width: `${a2.percent}%` }} />
-                    </div>
-                    <span className="text-xs text-gray-400 w-8 text-right shrink-0">{a2.percent}%</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      {/* 年齢グラフ（2期間グループ棒グラフ） */}
+      <ResponsiveContainer width="100%" height={160}>
+        <BarChart data={chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barCategoryGap="30%">
+          <XAxis dataKey="age" tick={{ fontSize: 8 }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 8 }} axisLine={false} tickLine={false} unit="%" />
+          <Tooltip formatter={(v, name) => [`${v}%`, name === 'p1' ? period1 : period2]} contentStyle={{ fontSize: 11 }} />
+          <Bar dataKey="p1" name="p1" fill="#4C6EF5" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="p2" name="p2" fill="#BAC8FF" radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
 
       {/* 凡例 */}
-      <div className="flex gap-4 text-xs pt-1">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-2 bg-indigo-400 rounded-sm" />
+      <div className="flex gap-4 text-xs">
+        <span>
+          <span className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: '#4C6EF5' }} />
           <span className="text-blue-600">{period1}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-2 bg-indigo-200 rounded-sm" />
+        </span>
+        <span>
+          <span className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: '#BAC8FF' }} />
           <span className="text-gray-400">{period2}</span>
-        </div>
+        </span>
       </div>
     </div>
   )
