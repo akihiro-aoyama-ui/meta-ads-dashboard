@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { getPerformanceLevel, getPerformanceBadgeClass, getAdInsights } from '../utils/performance'
+
+const AGE_GROUPS = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']
 
 export default function AdCard({ ad, imageUrl, onImageUpload }) {
   const fileInputRef = useRef(null)
@@ -22,14 +25,12 @@ export default function AdCard({ ad, imageUrl, onImageUpload }) {
   const malePercent = totalImp > 0 ? Math.round(maleImp / totalImp * 100) : 0
   const femalePercent = 100 - malePercent
 
-  // 年齢層集計（impressions合計）
-  const ageMap = {}
-  demographics.forEach(d => {
-    ageMap[d.age] = (ageMap[d.age] || 0) + d.impressions
-  })
-  const ageGroups = Object.entries(ageMap)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([age, imp]) => ({ age, percent: totalImp > 0 ? Math.round(imp / totalImp * 100) : 0 }))
+  // 年齢×性別グラフデータ
+  const chartData = AGE_GROUPS.map(age => ({
+    age,
+    male: demographics.filter(d => d.age === age && d.gender === 'male').reduce((s, d) => s + d.impressions, 0),
+    female: demographics.filter(d => d.age === age && d.gender === 'female').reduce((s, d) => s + d.impressions, 0),
+  })).filter(d => d.male > 0 || d.female > 0)
 
   function handleFileChange(e) {
     const file = e.target.files[0]
@@ -125,31 +126,30 @@ export default function AdCard({ ad, imageUrl, onImageUpload }) {
               <span>{showDemo ? '▲' : '▼'}</span>
             </button>
             {showDemo && (
-              <div className="px-3 pb-3 space-y-3">
-                {/* 性別バー */}
-                <div>
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>男性 {malePercent}%</span>
-                    <span>女性 {femalePercent}%</span>
-                  </div>
-                  <div className="flex h-3 rounded-full overflow-hidden">
-                    <div className="bg-blue-400" style={{ width: `${malePercent}%` }} />
-                    <div className="bg-pink-400" style={{ width: `${femalePercent}%` }} />
-                  </div>
+              <div className="px-3 pb-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-700 mt-1">年齢と性別の分布</p>
+                <ResponsiveContainer width="100%" height={150}>
+                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barCategoryGap="30%">
+                    <XAxis dataKey="age" tick={{ fontSize: 8 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 8 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      formatter={(v, name) => [v.toLocaleString(), name === 'male' ? '男性' : '女性']}
+                      contentStyle={{ fontSize: 11 }}
+                    />
+                    <Bar dataKey="male" name="male" fill="#7B61FF" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="female" name="female" fill="#00C4CC" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="flex justify-center gap-4 text-xs text-gray-500">
+                  <span>
+                    <span className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: '#7B61FF' }} />
+                    男性 {malePercent}% ({maleImp.toLocaleString()})
+                  </span>
+                  <span>
+                    <span className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: '#00C4CC' }} />
+                    女性 {femalePercent}% ({femaleImp.toLocaleString()})
+                  </span>
                 </div>
-                {/* 年齢バー */}
-                <div className="space-y-1">
-                  {ageGroups.map(({ age, percent }) => (
-                    <div key={age} className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 w-14 shrink-0">{age}</span>
-                      <div className="flex-1 bg-gray-100 rounded-full h-2">
-                        <div className="bg-indigo-400 h-2 rounded-full" style={{ width: `${percent}%` }} />
-                      </div>
-                      <span className="text-xs text-gray-500 w-8 text-right">{percent}%</span>
-                    </div>
-                  ))}
-                </div>
-                {/* スクリーンショットボタン */}
                 <button
                   onClick={handleScreenshot}
                   disabled={capturing}
