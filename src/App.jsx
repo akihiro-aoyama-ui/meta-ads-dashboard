@@ -4,7 +4,7 @@ import SettingsModal from './components/SettingsModal'
 
 const STORAGE_KEY = 'meta_ads_settings'
 const AUTH_KEY = 'meta_ads_auth'
-const PASSWORD_HASH = '030af9948aa5aa112651666ff042e72b87a1a47de70439362b87b17380d675b8'
+const PASSWORD_HASH = '45906a7496d86d5bd98c07b326c81e0c98e8a91e81313c6e19d97ac5b2054b0f'
 
 const DEFAULT_SETTINGS = {
   gasUrl: '',
