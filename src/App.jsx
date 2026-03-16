@@ -34,6 +34,7 @@ async function hashPassword(pw) {
 }
 
 function PasswordGate({ onAuth }) {
+  const [id, setId] = useState('')
   const [pw, setPw] = useState('')
   const [error, setError] = useState(false)
 
@@ -53,14 +54,23 @@ function PasswordGate({ onAuth }) {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 w-full max-w-sm">
         <h1 className="text-lg font-bold text-gray-800 text-center mb-1">Meta広告ダッシュボード</h1>
-        <p className="text-xs text-gray-400 text-center mb-6">アクセスにはパスワードが必要です</p>
+        <p className="text-xs text-gray-400 text-center mb-6">アクセスにはログインが必要です</p>
+        <input
+          type="text"
+          value={id}
+          onChange={e => setId(e.target.value)}
+          placeholder="ID"
+          autoComplete="username"
+          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+          autoFocus
+        />
         <input
           type="password"
           value={pw}
           onChange={e => { setPw(e.target.value); setError(false) }}
           placeholder="パスワード"
+          autoComplete="current-password"
           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
-          autoFocus
         />
         {error && <p className="text-red-500 text-xs mb-3">パスワードが正しくありません</p>}
         <button
